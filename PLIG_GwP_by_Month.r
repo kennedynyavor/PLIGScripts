@@ -17,6 +17,7 @@ require(janitor)
 # Define Variables 
 prod_month <- ymd("2024-10-01")
 start_date_of_aggregation <- ymd('2023-01-01')
+data_start_year <- 2018 # Filter all payment data 
 
 
 #*****Load Scripts {Auto update}************************************************
@@ -35,7 +36,15 @@ alloc_df <-
     sheet = "dateTable",
     .name_repair = janitor::make_clean_names,
     trim_ws = TRUE
-  ) 
+  ) %>% 
+  mutate(
+    date_key = ymd(date_key),
+    agency   = ymd(agency),
+    scb      = ymd(scb)
+  ) %>% 
+  filter(
+    year(date_key) <= year(prod_month)
+  )
 
 
 #*****Product Table {Auto Update}***********************************************
@@ -78,19 +87,34 @@ actual_GwP <-
 #*****All Payment {Auto Manual}*************************************************
 #*Premium payment data
 pmt_df <-
+  # Import the data using read_delim
   read_delim(
     file = get_file_name(prod_month,"PAYMENT"),
     delim = ";",
     trim_ws = TRUE,
     name_repair = janitor::make_clean_names
   ) %>% 
+  # Convert all columns ending in "date" into the correct date format
   mutate_at(vars(matches("date$")),mdy) %>% 
-  select(-c(prp_other_names,prp_surname))
-
-
-pmt_df1 <- 
-  pmt_df %>% 
-  left_join(alloc_df,by = c("transaction_date" = "date_key"),keep = FALSE)
+  # Remove client name from the data - not needed
+  select(-c(prp_other_names,prp_surname)) %>% 
+  # Filter the data to include data after 
+  mutate(
+    year(transaction_date) >= data_start_year
+  ) %>% 
+  # Merge the all payment data with the allocation date table
+  left_join(alloc_df,by = c("transaction_date" = "date_key"),keep = FALSE) %>% 
+  # Add two columns, allocation date and product code
+  mutate(
+    alloc_date = if_else(str_detect(agent_branch,"SC BANCAS"),scb,agency),
+    product_code = str_sub(policy_number,1,4)
+  ) %>% 
+  # Remove the allocation dates for agency and scb
+  select(-c(scb,agency)) %>% 
+  # Merge the data with product table
+  # Any new columns added to the product table will automatically be added to the data
+  left_join(product_df,by = c('product_code'='product_code'),keep = FALSE)
+  
 
   
 
@@ -98,7 +122,7 @@ pmt_df1 <-
 
 
 
-
+which(str_detect(pmt_df2$agent_branch,"SC BANCAS"))
 
 
 
