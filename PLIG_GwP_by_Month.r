@@ -99,9 +99,6 @@ pmt_df <-
   # Remove client name from the data - not needed
   select(-c(prp_other_names,prp_surname)) %>% 
   # Filter the data to include data after 
-  mutate(
-    year(transaction_date) >= data_start_year
-  ) %>% 
   # Merge the all payment data with the allocation date table
   left_join(alloc_df,by = c("transaction_date" = "date_key"),keep = FALSE) %>% 
   # Add two columns, allocation date and product code
@@ -113,7 +110,14 @@ pmt_df <-
   select(-c(scb,agency)) %>% 
   # Merge the data with product table
   # Any new columns added to the product table will automatically be added to the data
-  left_join(product_df,by = c('product_code'='product_code'),keep = FALSE)
+  left_join(product_df,by = c('product_code'='product_code'),keep = FALSE) %>% 
+  # Find inception date, group by policy number and find the minimum payment date
+  group_by(policy_number) %>% 
+  mutate(incepted_date = min(payment_date)) %>% 
+  ungroup() %>% 
+  filter(
+    year(transaction_date) >= data_start_year
+  ) 
   
 
   #-----------------------------------------------------------------------------#
@@ -122,38 +126,33 @@ pmt_df <-
     pmt_df %>% 
     # Remove legacy products
     filter(
-      str_detect(product_code,"EMFP|EMSP|EFPP|EPPP",negate = TRUE)
+      str_detect(product_code,"EMFP|EMSP|EFPP|EPPP",negate = TRUE),
+      alloc_date <= prod_month,
+      alloc_date >= start_date_of_aggregation
     ) %>% 
     # Replace NABCO branches with the correct branch name
     mutate(
-      agent_branch = if_else(str_detect(agent_team,"NABCO"),agent_team,agent_branch)
-    )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      agent_branch = ifelse(str_detect(agent_branch,"NABCO"),agent_team,agent_branch),
+      incepted_date = rollback(incepted_date,roll_to_first=TRUE)
+    ) %>% 
+    # Creates join key
+    mutate(
+      join_key = paste0(sub_channel,year(alloc_date)*100+month(alloc_date))
+    ) %>% 
+    # Merge with actual GWP data
+    left_join(
+      actual_GwP %>% select(-c(channel,prod_month)),
+      by = c('join_key'= 'joinkey'),
+      keep = FALSE
+    ) %>% 
+    # Split actual GWP by premium paid by each policy
+    group_by(join_key) %>% 
+    mutate(pct_cont = amount/sum(amount),
+           GwP_Income = (amount/sum(amount))*GWP
+           ) %>% 
+    ungroup() %>% 
+    select(-c(join_key))
+    
+  
+#*****Final File {Auto Manual}*************************************************
+#*Premium payment data
