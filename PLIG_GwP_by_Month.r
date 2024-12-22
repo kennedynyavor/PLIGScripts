@@ -76,7 +76,7 @@ branch_info <-
   ) %>% 
   distinct(branchkey,.keep_all = TRUE)
 
-  
+
 
 #*****GWP by Month {Auto updated}***********************************************
 #* Create an excel file of GWP by Channel for individual line of business 
@@ -98,7 +98,7 @@ actual_GwP <-
   mutate(
     joinkey = paste0(channel,year(prod_month)*100 + month(prod_month))
   ) 
-  
+
 
 #*****All Payment {Auto Update}*************************************************
 #*Premium payment data
@@ -134,160 +134,163 @@ pmt_df <-
   filter(
     year(transaction_date) >= data_start_year
   ) 
-  
 
-  #-----------------------------------------------------------------------------#
-  # Further cleaning of the payment data, new variable added
-  pmt_df1 <-
-    pmt_df %>% 
-    # Remove legacy products
-    filter(
-      str_detect(product_code,"EMFP|EMSP|EFPP|EPPP",negate = TRUE),
-      alloc_date <= prod_month,
-      alloc_date >= start_date_of_aggregation
-    ) %>% 
-    # Replace NABCO branches with the correct branch name
-    mutate(
-      agent_branch =
-       ifelse(str_detect(agent_branch,"NABCO"),agent_team,agent_branch),
-      incepted_date = rollback(incepted_date,roll_to_first=TRUE)
-    ) %>% 
-    # Creates join key
-    mutate(
-      join_key = paste0(sub_channel,year(alloc_date)*100+month(alloc_date))
-    ) %>% 
-    # Merge with actual GWP data
-    left_join(
-      actual_GwP %>% select(-c(channel,prod_month)),
-      by = c('join_key'= 'joinkey'),
-      keep = FALSE
-    ) %>% 
-    # Split actual GWP by premium paid by each policy
-    group_by(join_key) %>% 
-    mutate(pct_cont = amount/sum(amount),
-           GwP_Income = (amount/sum(amount))*GWP
-           ) %>% 
-    ungroup() %>% 
-    select(-c(join_key)) %>% 
-    # Merge branch info with all payment data
-    left_join(
-      branch_info,by = c("agent_branch"="branchkey"),keep = FALSE
-    ) %>% 
-    mutate(
-      first_ann = incepted_date + months(12),
-      renewal_status = if_else(
-        rollback(payment_date,roll_to_first=TRUE) < first_ann,
-        "FY GwP","Renewal GwP"
-      )
-    )
-    
-  
-  #***** Final Detailed Data {Auto Update}**************************************
-  #* The is the final data and it has policy level data
-  #* Use this only if you can't find a particular column in the summary data
-  pmt_final_detailed <-
-    pmt_df1 %>% 
-    # Rename columns
-    rename(prodmonth = alloc_date, pay_freq = endr_freq_of_payment) %>% 
-    # Remove columns not needed
-    select(-c(first_ann,pct_cont, GWP,amount,receipt_no,agent_team,product_code)) %>% 
-    # Re-define the channels columns
-    mutate(
-      channel_lvl0 = product_channel,
-      channel_lvl1 = sub_channel,
-      channel_lvl2 = ifelse(str_detect(product_channel,'Banca'),sub_channel,
-                     ifelse(str_detect(product_channel,'Banca',negate=TRUE) & 
-                              str_detect(agent_branch,"BANCASSUR"),"Agency FC",channel_lvl2) ),
-      payment_date = rollback(payment_date,roll_to_first=TRUE)
-    ) %>% 
-    # Remove duplicate columns
-    select(
-      -c(product_channel,sub_channel)
-    ) %>% 
-    # Re-arrange columns
-    select(
-      policy_number,prodmonth,incepted_date,payment_date,transaction_date,status_reason,
-      fundprovider:agent_branch, product_type:product_class,branch_2:renewal_status,GwP_Income
-    )
-    
-  # Snapshot of the data
-  glimpse(pmt_final_detailed)
-  
-  
-  #***** Final Data Summary {Auto Update}***************************************
-  #* The is the final data and it has policy level data
-  #* Use this only if you can't find a particular column in the summary data
-  # Save detailed data for the month
-  pmt_final_summary <-
-    pmt_final_detailed %>% 
-    select(-c(policy_number,payment_date:agent_branch)) %>% 
-    group_by(prodmonth,product_type,product_name,product_class,branch_2,channel_lvl0,
-             channel_lvl1,channel_lvl2,renewal_status) %>% 
-    summarise(GwP_Income = sum(GwP_Income ))
-  
-  
- 
-  if (length(dir("./GwP_by_Product/results/"))>0) { 
-      pmt_final_detailed %>% 
-        write_delim(
-         paste0("./GwP_by_Product/results/gwp_detl_",
-                toupper(month(prod_month,label = T)),year(prod_month),".txt"),
-          delim = ";",
-          na = ""
-        )
-  } else {
-    
-    files_in_folder <- dir("./GwP_by_Product/results/")
-    
-    if (!str_detect(files_in_folder,paste0("detl_",toupper(month(prod_month,label = T)),year(prod_month)))){ 
-    
-        pmt_final_detailed %>% 
-          filter(prodmonth == prod_month) %>% 
-            write_delim(
-              paste0("./GwP_by_Product/results/gwp_detl_",
-                     toupper(month(prod_month,label = T)),year(prod_month),".txt"),
-              delim = ";",
-              na = ""
-            )
-    }
-  }
-  
-  
-  # Save summary data for the month
-  if (length(dir("./GwP_by_Product/results/"))>0) { 
-    
-    pmt_final_summary %>% 
-      write_csv(
-        "./GwP_by_Product/results/gwp_sum.csv",
-        na = ""
-      )
-  } else {
-    files_in_folder <- dir("./GwP_by_Product/results/")
-    if (!str_detect(files_in_folder,paste0("sum_",toupper(month(prod_month,label = T)),year(prod_month)))){ 
 
-      pmt_final_summary %>% 
-        filter(prodmonth == prod_month) %>% 
-        write_csv(
-          paste0("./GwP_by_Product/results/gwp_sum_",
-                 toupper(month(prod_month,label = T)),year(prod_month),".csv")
-          na = ""
-        )
-    }
-  }
+#-----------------------------------------------------------------------------#
+# Further cleaning of the payment data, new variable added
+pmt_df1 <-
+  pmt_df %>% 
+  # Remove legacy products
+  filter(
+    str_detect(product_code,"EMFP|EMSP|EFPP|EPPP",negate = TRUE),
+    alloc_date <= prod_month,
+    alloc_date >= start_date_of_aggregation
+  ) %>% 
+  # Replace NABCO branches with the correct branch name
+  mutate(
+    agent_branch =
+      ifelse(str_detect(agent_branch,"NABCO"),agent_team,agent_branch),
+    incepted_date = rollback(incepted_date,roll_to_first=TRUE)
+  ) %>% 
+  # Creates join key
+  mutate(
+    join_key = paste0(sub_channel,year(alloc_date)*100+month(alloc_date))
+  ) %>% 
+  # Merge with actual GWP data
+  left_join(
+    actual_GwP %>% select(-c(channel,prod_month)),
+    by = c('join_key'= 'joinkey'),
+    keep = FALSE
+  ) %>% 
+  # Split actual GWP by premium paid by each policy
+  group_by(join_key) %>% 
+  mutate(pct_cont = amount/sum(amount),
+         GwP_Income = (amount/sum(amount))*GWP
+  ) %>% 
+  ungroup() %>% 
+  select(-c(join_key)) %>% 
+  # Merge branch info with all payment data
+  left_join(
+    branch_info,by = c("agent_branch"="branchkey"),keep = FALSE
+  ) %>% 
+  mutate(
+    first_ann = incepted_date + months(12),
+    renewal_status = if_else(
+      rollback(payment_date,roll_to_first=TRUE) < first_ann,
+      "FY GwP","Renewal GwP"
+    )
+  )
+
+
+#***** Final Detailed Data {Auto Update}**************************************
+#* The is the final data and it has policy level data
+#* Use this only if you can't find a particular column in the summary data
+pmt_final_detailed <-
+  pmt_df1 %>% 
+  # Rename columns
+  rename(prodmonth = alloc_date, pay_freq = endr_freq_of_payment) %>% 
+  # Remove columns not needed
+  select(-c(first_ann,pct_cont, GWP,amount,receipt_no,agent_team,product_code)) %>% 
+  # Re-define the channels columns
+  mutate(
+    channel_lvl0 = product_channel,
+    channel_lvl1 = sub_channel,
+    channel_lvl2 = ifelse(str_detect(product_channel,'Banca'),sub_channel,
+                          ifelse(str_detect(product_channel,'Banca',negate=TRUE) & 
+                                   str_detect(agent_branch,"BANCASSUR"),"Agency FC",channel_lvl2) ),
+    payment_date = rollback(payment_date,roll_to_first=TRUE)
+  ) %>% 
+  # Remove duplicate columns
+  select(
+    -c(product_channel,sub_channel)
+  ) %>% 
+  # Re-arrange columns
+  select(
+    policy_number,prodmonth,incepted_date,payment_date,transaction_date,status_reason,
+    fundprovider:agent_branch, product_type:product_class,branch_2:renewal_status,GwP_Income
+  )
+
+
+# Snapshot of the data
+glimpse(pmt_final_detailed)
+
+
+#***** Final Data Summary {Auto Update}***************************************
+#* The is the final data and it has policy level data
+#* Use this only if you can't find a particular column in the summary data
+# Save detailed data for the month
+pmt_final_summary <-
+  pmt_final_detailed %>% 
+  select(-c(policy_number,payment_date:agent_branch)) %>% 
+  group_by(prodmonth,product_type,product_name,product_class,branch_2,channel_lvl0,
+           channel_lvl1,channel_lvl2,renewal_status) %>% 
+  summarise(GwP_Income = sum(GwP_Income ))
+
+
+files_in_folder <- dir("./GwP_by_Product/results/")
+mmyyyy <-  paste0(toupper(month(prod_month,label = T)),year(prod_month))
+
+
+#*****Saving the Data {Auto Update}*******************************************
+# This assumes the the first time the report would be run is OCT2024
+# The aggregate data from Jan2023 to Oct2024 would be saved once in the result folder
+# Subsequently, only the current month's data will be saved in the folder
+
+# Checks if the production month is Oct 2024
+if (mmyyyy == 'OCT2024' ) { 
   
+  # Save detail policy level data for JAN2023 - OCT2024 only if the production month is OCT2024
+  pmt_final_detailed %>% 
+    write_delim(
+      paste0("./GwP_by_Product/results/gwp_detl_",mmyyyy,".txt"),
+      delim = ";",
+      na = ""
+    )
   
-    # Check for any branch info mis-match
-    # if this returns "integer(0)" then there is no new branch
-    # if this returns "integer(n)" then there are new branches
-    which(is.na(pmt_df1$channel_lvl0))
-    if (length(which(is.na(pmt_df1$channel_lvl0))) > 0){
-      pmt_df1$agent_branch[which(is.na(pmt_df1$channel_lvl0))] %>% 
-      as.data.frame() %>% 
-      write_csv("new_branches.csv")
-    } else {
-      print("No New Branches")
-    }
+  # Save summary data for Jan2023-Oct2024 only if the production month is OCT2024
+  pmt_final_summary %>% 
+    write_csv(
+      paste0("./GwP_by_Product/results/gwp_sum_",mmyyyy,".csv"),
+      na = ""
+    )
   
+  # If the production month is not Oct 2024, data for the current production would be saved
+} else {
+  
+  # Save the current month's policy level GWP data
+  pmt_final_detailed %>% 
+    filter(prodmonth == prod_month) %>% 
+    write_delim(
+      paste0("./GwP_by_Product/results/gwp_detl_",mmyyyy,".txt"),
+      delim = ";",
+      na = ""
+    )
+  
+  # Save the current month summary data
+  pmt_final_summary %>% 
+    filter(prodmonth == prod_month) %>% 
+    write_csv(
+      paste0("./GwP_by_Product/results/gwp_sum_",
+             toupper(month(prod_month,label = T)),year(prod_month),".csv")
+      na = ""
+    )
+}
+
+
+#*****Saving the Data {Auto Update}*******************************************
+# Check for any branch info mismatch
+# if this returns "integer(0)" then there is no new branch
+# if this returns "integer(n)" then there are new branches
+# The new branches are then saved in the data_pred folder
+which(is.na(pmt_df1$channel_lvl0))
+if (length(which(is.na(pmt_df1$channel_lvl0))) > 0){
+  pmt_df1$agent_branch[which(is.na(pmt_df1$channel_lvl0))] %>% 
+    as.data.frame() %>% 
+    write_csv("new_branches.csv")
+} else {
+  print("No New Branches")
+}
+
 #*****New Branch Check {Auto Manual}********************************************
 #* Saves the unique branches to the data_pred folder - use to catch any new branches
 unique(pmt_df1$agent_branch) %>% data.frame() %>% write_csv("branches.csv")
