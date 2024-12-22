@@ -116,13 +116,22 @@ pmt_df <-
   left_join(product_df,by = c('product_code'='product_code'),keep = FALSE)
   
 
-  
+  #-----------------------------------------------------------------------------#
+  # Further cleaning of the payment data, new variable added
+  pmt_df1 <-
+    pmt_df %>% 
+    # Remove legacy products
+    filter(
+      str_detect(product_code,"EMFP|EMSP|EFPP|EPPP",negate = TRUE)
+    ) %>% 
+    # Replace NABCO branches with the correct branch name
+    mutate(
+      agent_branch = if_else(str_detect(agent_team,"NABCO"),agent_team,agent_branch)
+    )
 
 
 
 
-
-which(str_detect(pmt_df2$agent_branch,"SC BANCAS"))
 
 
 
