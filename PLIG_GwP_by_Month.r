@@ -16,6 +16,8 @@ require(janitor)
 # Define Variables 
 prod_month <- ymd("2024-10-01")
 start_date_of_aggregation <- ymd('2023-01-01')
+# Include any excluded policies here 
+excluded_policies <- c("UPF000063546,FDUP000004118,UPF000044352,UPF000044358,SFPP000002799,FDUP000004116,FDUP000004117,UPF000057428,UPF000062326")
 
 
 #*****Date table {Auto update}**************************************************
@@ -63,7 +65,10 @@ actual_GwP <-
   rename(channel = month) %>% 
   mutate(
     prod_month = janitor::excel_numeric_to_date(as.numeric(prod_month))
-  )
+  ) %>% 
+  mutate(
+    joinkey = paste0(channel,year(prod_month)*100 + month(prod_month))
+  ) 
   
 
 
