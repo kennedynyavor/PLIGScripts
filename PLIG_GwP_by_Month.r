@@ -15,9 +15,10 @@
 
 # Load libraries
 require(tidyverse)
+require(lubridate)
 require(readxl)
 require(janitor)
-require(openxlsx)
+#require(openxlsx)
 
 start_time <- now()
 #*****Variables {Manual update}*************************************************
@@ -356,49 +357,49 @@ if (length(which(is.na(pmt_df1$channel_lvl0))) > 0){
 #* Change sheet_name1 <- "GWP-Data" and sheet_name2 <- "GWP.1" to the new sheet names
 #* Also, if you wish to save the file in another folder, provide the full file path in
 #* the variable below
-filepath <- "./GwP_by_Product/GWP Summary.xlsx"
-
-# Load the summary excel file
-wb <- loadWorkbook(filepath)
-
-# Assign sheet names in the excel file as variables for sheet 1 and sheet 2
-sheet_name1 <- "GWP-Data"
-sheet_name2 <- "GWP.1"
-sheet_name3 <- "ByProduct"
-
-# Apply number format to format GWP in thousands 
-number_format_style <- createStyle(numFmt = "#,##0,;[Red](#,##0,);-")
-
-# Delete existing data in the data sheet
-deleteData(wb, sheet = sheet_name, cols = 1:16, rows = 1:100000,gridExpand = TRUE)
-
-# Paste the new up-to-date summary data to the data sheet
-writeData(wb, sheet = sheet_name1, x = aggr_summ, startCol = 1, startRow = 1)
-
-# Apply only number formatting to the range (e.g., A1:A10)
-addStyle(
-  wb,
-  sheet = sheet_name2,
-  style = number_format_style,
-  rows = 6:57,       # Specify the rows
-  cols = 8:200,      # Specify the columns (e.g., column A)
-  gridExpand = TRUE, # Expand style across the grid
-  stack = TRUE       # Retain existing formatting (e.g., colors, borders, etc.)
-)
-
-# Apply only number formatting to the range (e.g., A1:A10)
-addStyle(
-  wb,
-  sheet = sheet_name3,
-  style = number_format_style,
-  rows = 6:300,       # Specify the rows
-  cols = 9:200,      # Specify the columns (e.g., column A)
-  gridExpand = TRUE, # Expand style across the grid
-  stack = TRUE       # Retain existing formatting (e.g., colors, borders, etc.)
-)
-
-# Save the workbook (overwrite the original file)
-saveWorkbook(wb, filepath, overwrite = TRUE)
+# filepath <- "./GwP_by_Product/GWP Summary.xlsx"
+# 
+# # Load the summary excel file
+# wb <- loadWorkbook(filepath)
+# 
+# # Assign sheet names in the excel file as variables for sheet 1 and sheet 2
+# sheet_name1 <- "GWP-Data"
+# sheet_name2 <- "GWP.1"
+# sheet_name3 <- "ByProduct"
+# 
+# # Apply number format to format GWP in thousands 
+# number_format_style <- createStyle(numFmt = "#,##0,;[Red](#,##0,);-")
+# 
+# # Delete existing data in the data sheet
+# deleteData(wb, sheet = sheet_name, cols = 1:16, rows = 1:100000,gridExpand = TRUE)
+# 
+# # Paste the new up-to-date summary data to the data sheet
+# writeData(wb, sheet = sheet_name1, x = aggr_summ, startCol = 1, startRow = 1)
+# 
+# # Apply only number formatting to the range (e.g., A1:A10)
+# addStyle(
+#   wb,
+#   sheet = sheet_name2,
+#   style = number_format_style,
+#   rows = 6:57,       # Specify the rows
+#   cols = 8:200,      # Specify the columns (e.g., column A)
+#   gridExpand = TRUE, # Expand style across the grid
+#   stack = TRUE       # Retain existing formatting (e.g., colors, borders, etc.)
+# )
+# 
+# # Apply only number formatting to the range (e.g., A1:A10)
+# addStyle(
+#   wb,
+#   sheet = sheet_name3,
+#   style = number_format_style,
+#   rows = 6:300,       # Specify the rows
+#   cols = 9:200,      # Specify the columns (e.g., column A)
+#   gridExpand = TRUE, # Expand style across the grid
+#   stack = TRUE       # Retain existing formatting (e.g., colors, borders, etc.)
+# )
+# 
+# # Save the workbook (overwrite the original file)
+# saveWorkbook(wb, filepath, overwrite = TRUE)
 
 # Check how long it took to run the script
 print(now() - start_time)
