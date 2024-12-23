@@ -15,14 +15,20 @@ require(janitor)
 
 #*****Variables {Manual update}*************************************************
 # Define Variables 
+
+# Current Production Month 
 prod_month <- ymd("2024-10-01")
-start_date_of_aggregation <- ymd('2023-01-01')
-data_start_year <- 2018 # Filter all payment data 
+
+# Start date of GWP aggregation
+# Currently, the actual GWP file starts from 2023 hence, this date should start from 2023
+# IF you want to use actual from 2022, then set this to 2022-01-01, and also update the excel file
+# with actual starting from 2022. 
+start_date_of_aggregation <- ymd('2023-01-01') 
 
 
 #*****Load Scripts {Auto update}************************************************
-#*
-source("./r_files1/r_files/prep_functions2.R")
+#* Load predefined r functions
+source("./r_files/prep_functions2.R")
 
 
 #*****Date table {Auto update}**************************************************
@@ -130,10 +136,7 @@ pmt_df <-
   # Find inception date, group by policy number and find the minimum payment date
   group_by(policy_number) %>% 
   mutate(incepted_date = min(payment_date)) %>% 
-  ungroup() %>% 
-  filter(
-    year(transaction_date) >= data_start_year
-  ) 
+  ungroup() 
 
 
 #-----------------------------------------------------------------------------#
