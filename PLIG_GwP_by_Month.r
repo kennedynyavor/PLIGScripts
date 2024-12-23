@@ -72,7 +72,10 @@ product_df <-
     trim_ws = TRUE
   ) %>% 
   distinct(product_code,.keep_all = TRUE) %>% 
-  select(-c(sdr_group,never_lapsed))
+  select(-c(sdr_group,never_lapsed)) %>% 
+  mutate(
+    product_class = if_else(str_detect(product_class,"Petra"),"Prudent",product_class)
+  )
 
 
 #*****Branches Table {Auto Update}**********************************************
@@ -361,6 +364,7 @@ wb <- loadWorkbook(filepath)
 # Assign sheet names in the excel file as variables for sheet 1 and sheet 2
 sheet_name1 <- "GWP-Data"
 sheet_name2 <- "GWP.1"
+sheet_name3 <- "ByProduct"
 
 # Apply number format to format GWP in thousands 
 number_format_style <- createStyle(numFmt = "#,##0,;[Red](#,##0,);-")
@@ -377,7 +381,18 @@ addStyle(
   sheet = sheet_name2,
   style = number_format_style,
   rows = 6:57,       # Specify the rows
-  cols = 8:100,      # Specify the columns (e.g., column A)
+  cols = 8:200,      # Specify the columns (e.g., column A)
+  gridExpand = TRUE, # Expand style across the grid
+  stack = TRUE       # Retain existing formatting (e.g., colors, borders, etc.)
+)
+
+# Apply only number formatting to the range (e.g., A1:A10)
+addStyle(
+  wb,
+  sheet = sheet_name3,
+  style = number_format_style,
+  rows = 6:300,       # Specify the rows
+  cols = 9:200,      # Specify the columns (e.g., column A)
   gridExpand = TRUE, # Expand style across the grid
   stack = TRUE       # Retain existing formatting (e.g., colors, borders, etc.)
 )
