@@ -32,7 +32,7 @@ source("./r_files1/r_files/prep_functions2.R")
 # Request cut off dates from 
 alloc_df <- 
   read_excel(
-    path = "./data_prep/dim_files/datetable.xlsx",
+    path = "./dim_files/datetable.xlsx",
     sheet = "dateTable",
     .name_repair = janitor::make_clean_names,
     trim_ws = TRUE
@@ -270,8 +270,7 @@ if (mmyyyy == 'OCT2024' ) {
   pmt_final_summary %>% 
     filter(prodmonth == prod_month) %>% 
     write_csv(
-      paste0("./GwP_by_Product/results/gwp_sum_",
-             toupper(month(prod_month,label = T)),year(prod_month),".csv")
+      paste0("./GwP_by_Product/results/gwp_sum_",mmyyyy,".csv"),
       na = ""
     )
 }
@@ -282,16 +281,50 @@ if (mmyyyy == 'OCT2024' ) {
 # if this returns "integer(0)" then there is no new branch
 # if this returns "integer(n)" then there are new branches
 # The new branches are then saved in the data_pred folder
-which(is.na(pmt_df1$channel_lvl0))
+new_br_file <- "./GwP_by_Product/new_branches.csv"
+if (dir.exists(new_br_file)){
+  unlink(new_br_file)
+}
+
+
+#*****Save Aggregate data {Auto Update}*******************************************
+#* Aggregates the monthly data in results folder and save it in the aggregate_files folder
+#* Both the policy level data and summary data sets are saved in the same folder
+#* This is the data you should use for your reporting 
+#* IF you want to use power query, then use the aggregate data
+#* IF you want to put the data in an excel template, use the summary data
+
+res_files <- dir("./GwP_by_Product/results/")
+
+# Save the Policy level data  
+map_df(
+  paste0("./GwP_by_Product/results/", res_files[str_detect(res_files, "_detl_")]),
+  ~ read_delim(., delim = ";")
+) %>% 
+write_delim(
+  "./GwP_by_Product/aggregate_files/GWP_Detailed.txt",
+  delim = ";",
+  na = ""
+)
+
+# Save the Summary level data  
+map_df(
+  paste0("./GwP_by_Product/results/", res_files[str_detect(res_files, "_sum_")]),
+  ~ read_csv(.)
+) %>% 
+  write_csv(
+    "./GwP_by_Product/aggregate_files/GWP_Summary.csv",
+    na = ""
+  )
+
+
+# Check if there are new branches
 if (length(which(is.na(pmt_df1$channel_lvl0))) > 0){
   pmt_df1$agent_branch[which(is.na(pmt_df1$channel_lvl0))] %>% 
     as.data.frame() %>% 
-    write_csv("new_branches.csv")
+    write_csv(new_br_file)
 } else {
   print("No New Branches")
 }
 
-#*****New Branch Check {Auto Manual}********************************************
-#* Saves the unique branches to the data_pred folder - use to catch any new branches
-unique(pmt_df1$agent_branch) %>% data.frame() %>% write_csv("branches.csv")
-
+# END
