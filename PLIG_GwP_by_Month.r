@@ -4,6 +4,12 @@
 #* Date Updated:   12/22/2024
 #* NOTE: ALL CODE CHUNKS DENOTED {Manual Update}, SHOULD BE UPDATED MANUALLY
 #* BEFORE YOU RUN THIS FILE, SET THE WORKING DIRECTORY TO THE "~/z_data/data_prep"
+#* After running the script, the summary results will be update in the GWP_Summary.xlsx
+#* Check GWP_Summary.xlsx file for summary of the YTD FYP and Renewal GWP
+#* The raw data is also saved in the aggregate_files folder
+#* The GWP_Detailed.txt is detailed policy level GWP data 
+#* The GWP_Summary.csv is the summary data - same data is pasted in the GWP_Summary.xlsx file
+#* You can link your Power Query to both files depending the requirements
 #*******************************************************************************
 
 
@@ -343,15 +349,26 @@ if (length(which(is.na(pmt_df1$channel_lvl0))) > 0){
 #* Monthly reports can be linked to this file 
 #* Another option (to be explored) would be to update a central reporting file directly.
 #* Ensure the  GWP_Summary.xlsx file is closed before you run the script
+#* Don't change the sheet names in the excel file. If you do, update the sheet names below
+#* Change sheet_name1 <- "GWP-Data" and sheet_name2 <- "GWP.1" to the new sheet names
+#* Also, if you wish to save the file in another folder, provide the full file path in
+#* the variable below
 filepath <- "./GwP_by_Product/GWP Summary.xlsx"
 
+# Load the summary excel file
 wb <- loadWorkbook(filepath)
+
+# Assign sheet names in the excel file as variables for sheet 1 and sheet 2
 sheet_name1 <- "GWP-Data"
 sheet_name2 <- "GWP.1"
+
+# Apply number format to format GWP in thousands 
 number_format_style <- createStyle(numFmt = "#,##0,;[Red](#,##0,);-")
 
-# Write data to the specified sheet (starting from cell A1)
+# Delete existing data in the data sheet
 deleteData(wb, sheet = sheet_name, cols = 1:16, rows = 1:100000,gridExpand = TRUE)
+
+# Paste the new up-to-date summary data to the data sheet
 writeData(wb, sheet = sheet_name1, x = aggr_summ, startCol = 1, startRow = 1)
 
 # Apply only number formatting to the range (e.g., A1:A10)
@@ -368,5 +385,7 @@ addStyle(
 # Save the workbook (overwrite the original file)
 saveWorkbook(wb, filepath, overwrite = TRUE)
 
-# END
+# Check how long it took to run the script
 print(now() - start_time)
+
+# END
