@@ -11,8 +11,9 @@
 require(tidyverse)
 require(readxl)
 require(janitor)
+require(openxlsx)
 
-
+start_time <- now()
 #*****Variables {Manual update}*************************************************
 # Define Variables 
 
@@ -337,6 +338,35 @@ if (length(which(is.na(pmt_df1$channel_lvl0))) > 0){
 
 
 #*****Updating Excel Summary File {Auto Update}*********************************
-#*
+#* This updates the GWP_Summary.xlsx file in the main folder with the latest GWP numbers
+#* This ensures the data is updated in all relevant files
+#* Monthly reports can be linked to this file 
+#* Another option (to be explored) would be to update a central reporting file directly.
+#* Ensure the  GWP_Summary.xlsx file is closed before you run the script
+filepath <- "./GwP_by_Product/GWP Summary.xlsx"
+
+wb <- loadWorkbook(filepath)
+sheet_name1 <- "GWP-Data"
+sheet_name2 <- "GWP.1"
+number_format_style <- createStyle(numFmt = "#,##0,;[Red](#,##0,);-")
+
+# Write data to the specified sheet (starting from cell A1)
+deleteData(wb, sheet = sheet_name, cols = 1:16, rows = 1:100000,gridExpand = TRUE)
+writeData(wb, sheet = sheet_name1, x = aggr_summ, startCol = 1, startRow = 1)
+
+# Apply only number formatting to the range (e.g., A1:A10)
+addStyle(
+  wb,
+  sheet = sheet_name2,
+  style = number_format_style,
+  rows = 6:57,       # Specify the rows
+  cols = 8:100,      # Specify the columns (e.g., column A)
+  gridExpand = TRUE, # Expand style across the grid
+  stack = TRUE       # Retain existing formatting (e.g., colors, borders, etc.)
+)
+
+# Save the workbook (overwrite the original file)
+saveWorkbook(wb, filepath, overwrite = TRUE)
 
 # END
+print(now() - start_time)
