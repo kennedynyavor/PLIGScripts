@@ -290,7 +290,7 @@ if (dir.exists(new_br_file)){
 }
 
 
-#*****Save Aggregate data {Auto Update}*******************************************
+#*****Save Aggregate data {Auto Update}*****************************************
 #* Aggregates the monthly data in results folder and save it in the aggregate_files folder
 #* Both the policy level data and summary data sets are saved in the same folder
 #* This is the data you should use for your reporting 
@@ -311,10 +311,13 @@ write_delim(
 )
 
 # Save the Summary level data  
+aggr_summ <-
 map_df(
   paste0("./GwP_by_Product/results/", res_files[str_detect(res_files, "_sum_")]),
   ~ read_csv(.)
-) %>% 
+) 
+
+aggr_summ %>% 
   write_csv(
     "./GwP_by_Product/aggregate_files/GWP_Summary.csv",
     na = ""
@@ -329,5 +332,11 @@ if (length(which(is.na(pmt_df1$channel_lvl0))) > 0){
 } else {
   print("No New Branches")
 }
+
+
+
+
+#*****Updating Excel Summary File {Auto Update}*********************************
+#*
 
 # END
